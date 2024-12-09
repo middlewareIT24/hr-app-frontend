@@ -1,4 +1,6 @@
+/* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable no-unused-vars */
+import Alert from '@mui/material/Alert';
 import { useEffect, useState } from 'react';
 import Select from 'react-select';
 import { getUserData } from '../../context/UserContext';
@@ -10,10 +12,13 @@ import { addEvaluationForm, getCandidatesByDateService, getCandidatesService } f
 export default function EvaluationFormPage() {
   const user = getUserData();
   const [formData, setFormData] = useState({});
-
   const [selectedDate, setSelectedDate] = useState('');
   const [candidateList, setCandidateList] = useState([]);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState('success');
+  const [shouldResetForm, setShouldResetForm] = useState(true);
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -39,16 +44,15 @@ export default function EvaluationFormPage() {
 
   // Calculate derived fields when form data changes
   const calculateDerivedFields = (data) => {
-    const fieldsToSum = ['attire_body_language', 'work_knowledge', 'team_player', 'problem_solving_skill', 'communication_skill'];
-
+    const fieldsToSum = ['attireBodyLanguage', 'workKnowledge', 'teamPlayer', 'problemSolvingSkill', 'communicationSkill'];
     const totalMarks = fieldsToSum.reduce((total, field) => total + (parseFloat(data[field]) || 0), 0);
     const performance =
       totalMarks >= 45 ? 'Outstanding' : totalMarks >= 31 ? 'Good' : totalMarks >= 23 ? 'Average' : totalMarks >= 17 ? 'Fair' : 'Poor';
 
     return {
       ...data,
-      total_marks: totalMarks,
-      average_marks: totalMarks / fieldsToSum.length,
+      totalMarks: totalMarks,
+      avgMarks: totalMarks / fieldsToSum.length,
       performance
     };
   };
@@ -59,37 +63,63 @@ export default function EvaluationFormPage() {
   };
 
   const handleSubmit = async (data) => {
-    console.log('Submitted Data:', data);
+    if (selectedCandidate) {
+      try {
+        const requestBody = {
+          attireBodyLanguage: data.attireBodyLanguage,
+          workKnowledge: data.workKnowledge,
+          teamPlayer: data.teamPlayer,
+          problemSolvingSkill: data.problemSolvingSkill,
+          communicationSkill: data.communicationSkill,
+          outOfMarks: data.outOfMarks,
+          totalMarks: data.totalMarks,
+          avgMarks: data.avgMarks,
+          performance: data.performance,
+          candidate: {
+            candidateNumber: selectedCandidate
+          }
+        };
 
-    const requestBody = {
-      key: { candidateNumber: 1, submittedBy: user?.id },
-      submittedDate: new Date(),
-      ...data
-    };
-
-    try {
-      const response = await addEvaluationForm(requestBody, user.token);
-      if (response.status === 200) {
-        alert('Data Saved Successfully');
-      } else {
-        alert('Process failed! Try again');
+        const response = await addEvaluationForm(requestBody, user.token);
+        if (response.data.statusCode === 200) {
+          setAlertMessage('Data Saved Successfully');
+          setAlertSeverity('success');
+          setShouldResetForm(true);
+          setTimeout(() => {
+            setAlertMessage('');
+          }, 1000);
+        } else {
+          setAlertMessage('Process failed! Try again');
+          setAlertSeverity('error');
+          setShouldResetForm(false);
+          setTimeout(() => {
+            setAlertMessage('');
+          }, 1000);
+        }
+      } catch (error) {
+        setAlertMessage('An Error Occured! Please Try Again..');
+        setAlertSeverity('error');
+        setShouldResetForm(false);
+        setTimeout(() => {
+          setAlertMessage('');
+        }, 1000);
       }
-    } catch (error) {
-      alert('An error occurred! Please try again.');
+    } else {
+      alert('Please select a candidaete');
     }
   };
 
   const fields = [
-    { label: 'Out of Marks', name: 'out_of_marks', type: 'number', placeholder: 'Out of Marks', defaultValue: 10 },
-    { label: 'Average Marks', name: 'average_marks', type: 'number', placeholder: 'Average Marks', readOnly: true },
+    { label: 'Out of Marks', name: 'outOfMarks', type: 'number', placeholder: 'Out of Marks', defaultValue: 10 },
+    { label: 'Average Marks', name: 'avgMarks', type: 'number', placeholder: 'Average Marks', readOnly: true },
     { label: 'Performance', name: 'performance', type: 'text', placeholder: 'Enter Performance', readOnly: true },
 
-    { label: 'Attire Body Language', name: 'attire_body_language', type: 'number', placeholder: 'Attire Body Language' },
-    { label: 'Work Knowledge', name: 'work_knowledge', type: 'number', placeholder: 'Enter Work Knowledge' },
-    { label: 'Team Player', name: 'team_player', type: 'number', placeholder: 'Team Player' },
-    { label: 'Problem Solving Skill', name: 'problem_solving_skill', type: 'number', placeholder: 'Problem Solving Skill' },
-    { label: 'Communication Skill', name: 'communication_skill', type: 'number', placeholder: 'Communication Skill' },
-    { label: 'Total Marks', name: 'total_marks', type: 'number', placeholder: 'Total Marks', readOnly: true }
+    { label: 'Attire Body Language', name: 'attireBodyLanguage', type: 'number', placeholder: 'Attire Body Language' },
+    { label: 'Work Knowledge', name: 'workKnowledge', type: 'number', placeholder: 'Enter Work Knowledge' },
+    { label: 'Team Player', name: 'teamPlayer', type: 'number', placeholder: 'Team Player' },
+    { label: 'Problem Solving Skill', name: 'problemSolvingSkill', type: 'number', placeholder: 'Problem Solving Skill' },
+    { label: 'Communication Skill', name: 'communicationSkill', type: 'number', placeholder: 'Communication Skill' },
+    { label: 'Total Marks', name: 'totalMarks', type: 'number', placeholder: 'Total Marks', readOnly: true }
   ];
 
   const handleDateChange = (data) => {
@@ -102,8 +132,11 @@ export default function EvaluationFormPage() {
   };
 
   const candidateOptions = candidateList
-    .filter((option) => option.fullName.toLowerCase().includes(inputValue.toLowerCase()))
-    .map((option) => ({ value: option.candidateNumber, label: option.fullName + ' ' + option.contactNumber }));
+    .filter((option) => option?.fullName?.toLowerCase().includes(inputValue?.toLowerCase() || ''))
+    .map((option) => ({
+      value: option?.candidateNumber || null,
+      label: `${option?.fullName || ''} ${option?.contactNumber || ''}`.trim()
+    }));
 
   const handleCandidateSelection = (selectedOption) => {
     setSelectedCandidate(selectedOption.value);
@@ -111,7 +144,21 @@ export default function EvaluationFormPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%', marginBottom: '1rem' }}>
+      {alertMessage && (
+        <Alert variant="filled" severity={alertSeverity}>
+          {alertMessage}
+        </Alert>
+      )}
+      <div
+        style={{
+          display: 'flex',
+          gap: '15px',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          width: '100%',
+          marginBottom: '1rem'
+        }}
+      >
         <div
           style={{
             flex: '1 1 calc(20% - 12px)',
@@ -159,7 +206,7 @@ export default function EvaluationFormPage() {
         rowsConfig={[3, 3, 3]}
         onFormChange={handleFormChange} // Update calculations when inputs change
         onSubmit={handleSubmit} // Handle final submission
-        resetAfterSubmit={true}
+        resetAfterSubmit={shouldResetForm}
       />
     </div>
   );

@@ -28,7 +28,7 @@ export default function EvaluationFormPage() {
     { label: 'Interview Date', name: 'interviewDate', type: 'date' },
 
     { label: 'Full name', name: 'fullName', type: 'text' },
-    { label: 'NID number', name: 'nidNumber', type: 'text' },
+    { label: 'NID/BIRTH REGISTRATION', name: 'nidNumber', type: 'text' },
     { label: 'Age', name: 'age', type: 'text' },
 
     { label: 'Email address', name: 'email', type: 'text', placeholder: 'example@gmail.com' },
@@ -47,7 +47,7 @@ export default function EvaluationFormPage() {
     { label: 'Mother name', name: 'motherName', type: 'text' },
     { label: 'Number of siblings', name: 'numberOfSiblings', type: 'number' },
 
-    { label: 'Have reference', name: 'haveReference', type: 'checkbox' },
+    // { label: 'Have reference', name: 'haveReference', type: 'checkbox' },
     { label: 'Reference name', name: 'ReferenceName', type: 'text' },
     { label: 'Reference relation', name: 'referenceRelation', type: 'text' },
     { label: 'Reference designation', name: 'referenceDesignation', type: 'text' },
@@ -266,7 +266,7 @@ export default function EvaluationFormPage() {
         <Form
           fields={fields}
           initialValues={formData}
-          rowsConfig={[2, 3, 2, 2, 5, 3, 4, 5, 5, 5, 5, 5]}
+          rowsConfig={[2, 3, 2, 2, 5, 3, 3, 5, 5, 5, 5, 5]}
           onSubmit={handleSubmit}
           resetAfterSubmit={true}
         />
